@@ -1,0 +1,43 @@
+```{r}
+genes_of_interest <- c("Lag3", "Osbpl3", "Casp3", "Dusp4", "S100a4", 
+                       "Mcm6", "Cd200", "Stx11", "Capns1", "Capg", 
+                       "Efhd2", "Polr2j", "S100a11", "Ifng", 
+                       "Was", "Pgam1", "Ndufa12")  #,"Pdcd1")
+expr_matrix <- GetAssayData(epbs, slot = "data")  # log-normalized expression
+
+library(AUCell)
+cells_rankings <- AUCell_buildRankings(expr_matrix, nCores = 1, plotStats = TRUE)
+gene_sets <- list(PD1_signature = genes_of_interest)
+cells_auc <- AUCell_calcAUC(gene_sets, cells_rankings)
+# Convert to vector and match cell names
+auc_vector <- as.numeric(getAUC(cells_auc)["PD1_signature", ])
+names(auc_vector) <- colnames(getAUC(cells_auc))  # cell barcodes
+
+# Add to Seurat metadata
+epbs$pd1_auc_score <- auc_vector
+```
+
+```{r}
+auc_score_cutoff <- quantile(epbs$pd1_auc_score, 0.43) #fraction from flow cytometry analysis
+epbs$aucpd1 <- ifelse(epbs$pd1_auc_score >= auc_score_cutoff, "pd1pos", "pd1neg")
+expr_pdcd1 <- GetAssayData(epbs, slot = "data")["Pdcd1", ]
+epbs$aucpd1[which(expr_pdcd1 > 0)] <- "pd1pos"
+```
+
+
+
+```{r}
+
+anchors <- FindTransferAnchors(
+  reference = epbs, # Reference dataset
+  query = all,          # Query dataset
+  dims = 1:40,                   # Dimensions to use for alignment
+  reference.reduction = "pca"    # Specify reduction method if applicable
+)
+
+predicted <- TransferData(
+  anchorset = anchors, 
+  refdata = epbs$aucpd1,  # Replace 'celltype' with the metadata column storing annotations
+  dims = 1:40
+)
+```

@@ -1,0 +1,61 @@
+
+
+```{r}
+celltype <- FindMarkers(mac, ident.1 = "ident1", ident.2 = "ident2", test.use = "wilcox", only.pos = TRUE)
+```
+
+
+
+```{r}
+celltype <- celltype %>% mutate(diffexpressed = case_when(
+  avg_log2FC > 0 & p_val_adj < 0.05 ~ 'UP',
+  avg_log2FC < 0 & p_val_adj < 0.05 ~ 'DOWN',
+  p_val_adj > 0.05 ~ 'NO'))
+```
+
+```{r}
+celltype <- celltype[celltype$diffexpressed != 'NO', ]
+celltype <- celltype %>% mutate(diffexpressed = case_when(
+  avg_log2FC > 0  ~ 'UP',
+  avg_log2FC < 0  ~ 'DOWN',))
+```
+
+```{r}
+
+celltype_up <- subset(celltype, diffexpressed == "UP")
+celltype_down <- subset(celltype, diffexpressed == "DOWN")
+
+celltype_up <- subset(celltype_up, select = -c(diffexpressed))
+celltype_down <- subset(celltype_down, select = -c(diffexpressed))
+```
+
+```{r}
+celltype_up$gene_symbol <- rownames(celltype_up)
+celltype_upgse = bitr(celltype_up$gene_symbol, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = "org.Mm.eg.db")
+
+rownames(celltype_upgse) <- celltype_upgse$SYMBOL
+
+deleterowcelltype_up <- rownames(celltype_up)[!(rownames(celltype_up)) %in% (rownames(celltype_upgse))]
+celltype_up_ent <- celltype_up[!(rownames(celltype_up) %in% deleterowcelltype_up), ]
+
+celltype_up_ent$ENTREZID <- celltype_upgse$ENTREZID
+```
+
+```{r}
+celltype_down$gene_symbol <- rownames(celltype_down)
+celltype_downgse = bitr(celltype_down$gene_symbol, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = "org.Mm.eg.db")
+
+rownames(celltype_downgse) <- celltype_downgse$SYMBOL
+
+deleterowcelltype_down <- rownames(celltype_down)[!(rownames(celltype_down)) %in% (rownames(celltype_down))]
+celltype_down_ent <- celltype_down[!(rownames(celltype_down) %in% deleterowcelltype_down), ]
+
+celltype_down_ent$ENTREZID <- celltype_downgse$ENTREZID
+```
+
+```{r}
+hallmark = msigdbr(species = "Mus musculus", category = "H")
+hallmark = hallmark %>% dplyr::distinct(gs_name, entrez_gene) %>% as.data.frame()
+celltypeup_hal <- enricher(celltype_up_ent$ENTREZID, TERM2GENE = hallmark)
+celltypedown_hal <- enricher(celltype_down_ent$ENTREZID, TERM2GENE = hallmark)
+```

@@ -1,0 +1,60 @@
+
+```{r}
+#annotate the cells by label transfer from published reference.
+anchors <- FindTransferAnchors(
+  reference = ref, # Reference dataset
+  query = all,          # Query dataset
+  dims = 1:40,                   # Dimensions to use for alignment
+  reference.reduction = "pca"    # Specify reduction method if applicable
+)
+
+predicted <- TransferData(
+  anchorset = anchors, 
+  refdata = ref$celltype,  # Replace 'celltype' with the metadata column storing annotations
+  dims = 1:40
+)
+
+all$celltype <- predicted$predicted.id
+
+
+```
+
+```{r}
+all <- FindNeighbors(object = all, dims = 1:40)
+all <- FindClusters(object = all, resolution=6)
+#calculate the composition of cell types determined by label transfer in each cluster
+composition_by_cluster <- all@meta.data %>%
+  filter(seurat_clusters %in% selected_clusters) %>%
+  group_by(seurat_clusters, celltype) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(seurat_clusters) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+print(composition_by_cluster)
+```
+
+```{r}
+all$label <- as.character(all$seurat_clusters)
+
+# Assign clusters to cell types
+all$label[all$seurat_clusters %in% c("87","20","22","31","43","55","45","35","51","33","42","6","13","41",
+                                                   "52","69","81","57","15","10","37","5","0","77","14","24","17","54",
+                                                   "68","53","86","34","49","36","19","63","60")] <- "T cell"
+
+all$label[all$seurat_clusters %in% c("61","82","28","8","16","70","12","4","9","3","2","26","1","39","7",
+                                                   "30","46","27")] <- "B cell"
+
+all$label[all$seurat_clusters %in% c("62","85","58","88","67","47","84","73","80","83","25")] <- "other"
+
+all$label[all$seurat_clusters %in% c("40","29","32","50","72","21","89","64","44","78","65")] <- "macrophage"
+
+all$label[all$seurat_clusters %in% c("59")] <- "dendritic cell"
+
+all$label[all$seurat_clusters %in% c("38","75")] <- "NK cell"
+
+all$label[all$seurat_clusters %in% c("18")] <- "NK T cell"
+
+# Remove cells from specific clusters
+all <- subset(all, idents = setdiff(levels(Idents(all)), c("11","56","23","74","48","79","71","76","66")))
+```

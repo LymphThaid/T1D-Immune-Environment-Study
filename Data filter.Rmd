@@ -1,0 +1,33 @@
+
+```{r}
+all$log10GenesPerUMI <- log10(all$nFeature_RNA) / log10(all$nCount_RNA)
+#add this line of code first to prevent the NA in mitoRatio 
+all[["nFeature_RNA"]] <- colSums(x = all, slot = "counts")
+all$mitoRatio <- PercentageFeatureSet(object = all, pattern = "^mt-")
+all$mitoRatio <- all@meta.data$mitoRatio / 100
+metadata <- all@meta.data
+
+metadata$cells <- rownames(metadata)
+
+metadata <- metadata %>%
+  dplyr::rename(seq_folder = orig.ident,
+                nUMI = nCount_RNA,
+                nGene = nFeature_RNA)
+all@meta.data <- metadata
+
+all <- subset(x = all, nUMI >= 500)
+table(all@meta.data$status)
+table(all@meta.data$status)
+all <- subset(x = all,
+                          subset= (nUMI >= 500) &
+                            (nGene >= 250) &
+                            (log10GenesPerUMI > 0.80) &
+                            (mitoRatio < 0.20))
+all <- NormalizeData(all)
+all <- FindVariableFeatures(all, selection.method = "vst", nfeatures = 2000)
+all <- ScaleData(all)
+all <- RunPCA(all, npcs = 30)
+
+# Run UMAP
+all <- RunUMAP(all, dims = 1:30, reduction = "pca")
+```
