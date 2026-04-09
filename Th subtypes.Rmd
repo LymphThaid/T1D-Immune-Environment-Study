@@ -1,0 +1,42 @@
+```{r}
+cd4eff <- NormalizeData(cd4eff)
+cd4eff <- FindVariableFeatures(cd4eff, selection.method = "vst", nfeatures = 2000)
+cd4eff <- ScaleData(cd4eff)
+cd4eff <- RunPCA(cd4eff, npcs = 30)
+cd4eff <- RunUMAP(cd4eff, dims = 1:30, reduction = "pca")
+
+cd4eff <- FindNeighbors(object = cd4eff, dims = 1:30)
+cd4eff <- FindClusters(object = cd4eff, resolution=3)
+```
+
+```{r}
+# Gene sets (converted to mouse gene style)
+th1_genes <- c("Cd28", "Cd274", "Il2", "Il4", "Il6", "Il10ra", "Il12", "Il23a", "Myd88", "Pdcd1", "Plp1", "Ptpn2", "Tgfb1", "Casp8", "Crp", "Il27ra", "Icam1", "Il12b", "Tbet", "Il12r", "Cxcr3", "Il18", "Stat1", "Stat4", "Ifng", "Il3", "Tnf", "Csf2")
+
+th2_genes <- c("Adora2a", "Apoe", "C5ar1", "Il13ra1", "Mmp9", "Myd88", "Ptpn13", "Spi1", "Tbx21", "Tlr4", "Stat6", "Tigit", "Tnfrsf4", "Tslp", "Usp38", "Gata3", "Irf4", "Il4", "Il5", "Il13", "Il25r", "Il33r", "Batf", "Crth2", "Il17rb", "St2", "Tim1", "Ccr4", "Ccr8", "Ptgdr2", "Sema5a", "Akap12", "Hpgds")
+
+th17_genes <- c("Cd274", "Il10ra", "Pdcd1", "Il6", "Il17a", "Il17af", "Il17f", "Il21", "Il22", "Il23r", "Ahr", "Batf", "Ccr6", "Rora", "Rorc", "Il1r", "Ctsh", "Il4i1", "Lgals3")
+
+tfh_genes <- c("Cd200", "Cd83", "Cd84", "B3gat1", "Cdk5r1", "Il21", "Cxcr5", "Il4", "Stat3", "Bcl6", "C-maf", "Btla", "Cxcl13", "Cd57", "Irf4", "Batf", "Slam", "Ox4ol", "Cd40l", "Cmaf", "Gng4", "Pou2af1", "Igfbp4")
+
+# Plot Th1 genes
+FeaturePlot(cd4eff, features = th1_genes[th1_genes %in% rownames(cd4eff)], ncol = 4)
+
+# Plot Th2 genes
+FeaturePlot(cd4eff, features = th2_genes[th2_genes %in% rownames(cd4eff)], ncol = 4)
+
+# Plot Th17 genes
+FeaturePlot(cd4eff, features = th17_genes[th17_genes %in% rownames(cd4eff)], ncol = 4)
+
+# Plot Tfh genes
+FeaturePlot(cd4eff, features = tfh_genes[tfh_genes %in% rownames(cd4eff)], ncol = 4)
+```
+
+
+```{r}
+# Assign subtypes to cluster ID manually based on the signature gene expression
+cd4eff$ThSubtype_ClusterAnno[cd4eff$seurat_clusters %in% c(18, 0, 5, 9, 13, 16, 19, 4, 2,22)] <- "Th1"
+cd4eff$ThSubtype_ClusterAnno[cd4eff$seurat_clusters %in% c( 1, 7, 12, 11, 14, 3)]     <- "Tfh"
+cd4eff$ThSubtype_ClusterAnno[cd4eff$seurat_clusters %in% c(20, 8, 15,21)]                  <- "Th17"
+cd4eff$ThSubtype_ClusterAnno[cd4eff$seurat_clusters %in% c(6, 10, 17)]                  <- "Th2"
+```

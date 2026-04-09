@@ -1,0 +1,32 @@
+
+
+```{r}
+genes_tcflow <- c("Id2", "Prdm1", "Runx3", "Tgfbr2", "Cxcr6", "Fasl", "Cish", "Stat1", 
+                  "Ifng", "Gzmk", "Entpd1", "Cd38", "Cd101", "Tigit")
+
+genes_tcfhigh <- c("Tcf7", "Myc", "Irf4", "Nr4a3", "Cxcr5", "Xcl1", "Slamf6", "Ccna2", 
+                   "Ccnb1", "Ccnb2", "Ccne1", "E2f1", "E2f2", "Prickle1", "Axin2")
+
+gene_sets <- list(tcflow = genes_tcflow, tcfhigh = genes_tcfhigh)
+
+gene_list <- c(genes_tcflow, genes_tcfhigh)
+
+exprMatrix <- GetAssayData(cd8eff, assay = "RNA", slot = "data")
+
+
+cells_rankings <- AUCell_buildRankings(exprMatrix, nCores = 1, plotStats = FALSE)
+
+
+cells_AUC <- AUCell_calcAUC(gene_sets, cells_rankings)
+
+
+auc_matrix <- t(getAUC(cells_AUC)) 
+cd8eff <- AddMetaData(cd8eff, metadata = as.data.frame(auc_matrix))
+
+```
+
+```{r}
+cd8eff$tcf1<- ifelse(
+  cd8eff$tcflow > cd8eff$tcfhigh, "tcf1low", "tcf1high")
+```
+

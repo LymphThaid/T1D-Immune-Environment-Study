@@ -1,0 +1,24 @@
+```{r}
+Idents(epbstcell, WhichCells(object = epbstcell, expression = Pdcd1 > 0, slot = 'data')) <- 'pd1'
+Idents(epbstcell, WhichCells(object = epbstcell, expression = Pdcd1 <= 0, slot = 'data')) <- 'pd1-'
+
+degs <- FindMarkers(epbstcell, ident.1 = "pd1", test.use = "wilcox", only.pos = TRUE) # 7221 genes
+degs_2 <- degs %>% filter(degs$p_val_adj < 0.05, degs$avg_log2FC > 1) # 665 genes
+write.csv(degs_2,"pd1_corregenes.csv")
+```
+
+```{r}
+# get the expression fraction of the genes, and filter the genes based on the cut off 50%
+degs_2$genename <- rownames(degs_2)
+
+fraction <- DotPlot(epbstcell, features = degs_2$genename, split.by ="ident", cols = c("red","orange","green","blue") )
+fraction$data
+
+fraction_pd1 <- fraction$data %>% filter(fraction$data$id == "pd1_pd1", fraction$data$pct.exp > 50) # 71 genes
+fraction_nopd1 <- fraction$data %>% filter(fraction$data$id == "pd1-_pd1-", fraction$data$pct.exp < 50)# 659 genes
+
+#find the overlap between the two filtering requirement
+pd1corr = data.frame(gene=intersect(fraction_nopd1$features.plot, fraction_pd1$features.plot)) # 65 genes
+```
+
+Among the rest 65 genes, the left 17 genes are mainly expressed in T cells: "Lag3", "Osbpl3", "Casp3", "Dusp4", "S100a4", "Mcm6", "Cd200", "Stx11", "Capns1", "Capg", "Efhd2", "Polr2j", "S100a11", "Ifng", "Was", "Pgam1", "Ndufa12".
